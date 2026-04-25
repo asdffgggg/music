@@ -1,0 +1,7 @@
+Static {
+    content-align: center middle;
+}
+
+.column {
+    width: 1fr;
+}
