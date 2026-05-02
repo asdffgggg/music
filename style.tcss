@@ -1,5 +1,7 @@
-Static {
-    content-align: center middle;
+Screen {layout:vertical;}
+
+.row {
+    height: 1fr;
 }
 
 .column {

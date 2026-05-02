@@ -1,23 +1,46 @@
 import numpy as np
 import simpleaudio as sa
+from enum import Enum
 from math import pi
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Static
+from textual.widgets import Static, Button
 
 
+
+class Note:
+    def __init__(self, pitches, dur) -> None:
+        self.pitches = pitches
+        self.dur = dur
+class Sound(Enum):
+    Sine = 0
+
+class Instrument:
+    def __init__(self) -> None:
+        self.name = "default"
+        self.code = ""
+        self.sound = Sound.Sine
 class MusicApp(App):
+    instruments = [Instrument()]
+    curr_instr = 0
     CSS_PATH = "style.tcss"
     def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Static("instruments")
-            with Horizontal():
+        with Horizontal(classes = "row"):
+            with Vertical(classes="column"):
+                yield Static("Instruments:")
+            for i, insta in enumerate(self.instruments):
                 with Vertical(classes="column"):
-                    yield Static("Palette")
-                with Vertical(classes="column"):
-                    yield Static("Notes")
-                with Vertical(classes="column"):
-                    yield Static("Control")
+                    yield Button(insta.name, id = insta.name)
+        with Horizontal():
+            with Vertical(classes="column"):
+                yield Static("Palette")
+                for c in "CDEFGAB":
+                    yield Button(c)
+
+            with Vertical(classes="column"):
+                yield Static("Notes")
+            with Vertical(classes="column"):
+                yield Static("Control")
 
 if __name__ == "__main__":
     app = MusicApp()
