@@ -1,4 +1,6 @@
-Screen {layout:vertical;}
+Screen {
+    layout:vertical;
+}
 
 .row {
     height: 1fr;
@@ -6,4 +8,16 @@ Screen {layout:vertical;}
 
 .column {
     width: 1fr;
+}
+
+.instruments {
+    overflow-x: auto;
+}
+
+.instruments>* {
+    width:14;
+}
+
+.notes {
+    width:2fr
 }
