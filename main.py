@@ -5,7 +5,7 @@ from math import pi
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea
-
+import threading
 
 class Sound(Enum):
     Sine = 0
@@ -47,7 +47,8 @@ class MusicApp(App):
         #     self.instr().code += event.button.id
         if event.button.id == "play":
             try:
-                self.samples = self.synthesis()
+                samples = self.synthesis()
+                sa.play_buffer(samples, 1, 2, samplerate)
             except Exception as e:
                 self.query_one("#error", Static).update(str(e))
         pass
@@ -62,7 +63,6 @@ class MusicApp(App):
                 octave = int(i)
             except:
                 flat = i.islower()
-                i = i.capitalize()
                 if i.lower() in letters.lower():
                     i = letters.index(i.capitalize())
                     pitch = [0, 2, 4, 5, 7, 9, 11][i] + octave*12
@@ -79,10 +79,10 @@ class MusicApp(App):
                     case "i": dur= 0.5
                     case "s": dur = 0.25
                     case _: continue
-                lengh = dur/self.tempo
-                csamples =  np.linspace(0, lengh, num =round(lengh* samplerate))
+                seconds = dur*60/self.tempo
+                csamples =  np.zeros(round(seconds* samplerate))
                 for f in chord:
-                    samples =  np.linspace(0, lengh, num =round(lengh* samplerate))
+                    samples =  np.linspace(0, seconds, num =round(seconds* samplerate))
                     samples *= f * 2*pi
                     samples = np.sin(samples)
                     csamples += samples
@@ -97,15 +97,13 @@ class MusicApp(App):
 if __name__ == "__main__":
     app = MusicApp()
     app.run()
-    if app.samples:
-        sa.play_buffer(app.samples, 1, 2, samplerate).wait_done()
 
 # isamples = np.empty((),dtype=np.int16)
 # samplerate = 44100
 # lengh = 1
 # csamples =  np.linspace(0, lengh, num =round(lengh* samplerate))
 # csamples = csamples.astype(np.int16)
-# for f in [220, 440]:
+# for f in [220]:
 #     samples =  np.linspace(0, lengh, num =round(lengh* samplerate))
 #     samples *= f * 2*pi
 #     samples = np.sin(samples)
