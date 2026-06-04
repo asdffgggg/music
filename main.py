@@ -1,11 +1,11 @@
+import sounddevice as sd
 import numpy as np
-import simpleaudio as sa
+# import simpleaudio as sa
 from enum import Enum
 from math import pi
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea
-import threading
 
 class Sound(Enum):
     Sine = 0
@@ -48,7 +48,10 @@ class MusicApp(App):
         if event.button.id == "play":
             try:
                 samples = self.synthesis()
-                sa.play_buffer(samples, 1, 2, samplerate)
+                sd.play(samples, samplerate)
+                sd.wait()
+                # sa.play_buffer(samples, 1, 2, samplerate)
+
             except Exception as e:
                 self.query_one("#error", Static).update(str(e))
         pass
