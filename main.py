@@ -60,6 +60,8 @@ class MusicApp(App):
         octave = 4
         chord = []
         isamples = np.empty((),dtype=np.int16)
+        dot = 1
+        phase = 0
 
         for i in code:
             try:
@@ -81,20 +83,44 @@ class MusicApp(App):
                     case "q": dur = 1
                     case "i": dur= 0.5
                     case "s": dur = 0.25
+                    case ".": 
+                        dot = 1 + dot/2
+                        continue
                     case _: continue
+                dur *= dot
+                dot = 1
                 seconds = dur*60/self.tempo
                 csamples =  np.zeros(round(seconds* samplerate))
+                volume = 0.4
+                if len(chord) > 0:
+                    volume /= len(chord)
+
                 for f in chord:
                     samples =  np.linspace(0, seconds, num =round(seconds* samplerate))
                     samples *= f * 2*pi
-                    samples = np.sin(samples)
+                    samples = volume * np.sin(samples + phase*2*pi)
                     csamples += samples
                 csamples *= 2**15 -1
                 csamples = csamples.astype(np.int16)
                 isamples = np.append(isamples,csamples)
+                if len(chord) == 0:
+                    phase = 0
+                else:    
+                    phase += seconds * chord[0]
+
+
+                chord.clear()
         return isamples
                 
+# C.q CE.q EGq 
+# GB4Ei EBi EAi EGi Dgq Gigi
+# Ei gi Ei Di D3BGEw h
+# 5Eq 4Eq 2B3E.w
 
+# 4b5dFah
+# 4eGb5dh
+# 4CeGbh
+# 4FA5Ceh
                 
 
 if __name__ == "__main__":
