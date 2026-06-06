@@ -1,11 +1,11 @@
 import sounddevice as sd
 import numpy as np
-# import simpleaudio as sa
 from enum import Enum
 from math import pi
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea
+# from textual.reactive import reactive
 
 class Sound(Enum):
     Sine = 0
@@ -22,7 +22,15 @@ class MusicApp(App):
     CSS_PATH = "style.tcss"
     tempo = 120
     samples = None
+    played = False
+    def on_mount(self):
+        self.tick_time = self.set_interval(0.001, self.tick)
+    def tick(self):
+        if self.played and not sd.get_stream().active:
+            self.query_one("#play", Button).label = "▶️"
+
     def compose(self) -> ComposeResult:
+
         with Horizontal(classes = "instruments"):
             yield Static("Instruments:")
             for i, insta in enumerate(self.instruments):
@@ -32,7 +40,6 @@ class MusicApp(App):
                 yield Static("Palette")
                 for c in letters:
                     yield Button(c, id = c)
-
             with Vertical(classes="notes"):
                 yield Static("Notes")
                 yield TextArea.code_editor(self.instr().code, id = "urnotes")
@@ -47,11 +54,16 @@ class MusicApp(App):
         #     self.instr().code += event.button.id
         if event.button.id == "play":
             try:
-                samples = self.synthesis()
-                sd.play(samples, samplerate)
-                sd.wait()
-                # sa.play_buffer(samples, 1, 2, samplerate)
-
+                if event.button.label == "▶️":
+                    self.played = True
+                    samples = self.synthesis()
+                    sd.play(samples, samplerate)
+                    self.query_one("#play", Button).label = "⏹️"
+                elif not sd.get_stream().active:
+                    self.query_one("#play", Button).label = "▶️"
+                else:
+                    sd.stop()
+                    self.query_one("#play", Button).label = "▶️"
             except Exception as e:
                 self.query_one("#error", Static).update(str(e))
         pass
@@ -94,7 +106,6 @@ class MusicApp(App):
                 volume = 0.4
                 if len(chord) > 0:
                     volume /= len(chord)
-
                 for f in chord:
                     samples =  np.linspace(0, seconds, num =round(seconds* samplerate))
                     samples *= f * 2*pi
@@ -107,8 +118,6 @@ class MusicApp(App):
                     phase = 0
                 else:    
                     phase += seconds * chord[0]
-
-
                 chord.clear()
         return isamples
                 
