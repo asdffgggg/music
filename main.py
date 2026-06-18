@@ -4,7 +4,7 @@ from enum import Enum
 from math import pi
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Static, Button, TextArea
+from textual.widgets import Static, Button, TextArea, Input
 # from textual.reactive import reactive
 
 class Sound(Enum):
@@ -20,7 +20,7 @@ class MusicApp(App):
     instruments = [Instrument()]
     curr_instr = 0
     CSS_PATH = "style.tcss"
-    tempo = 120
+    
     samples = None
     played = False
     def on_mount(self):
@@ -46,6 +46,7 @@ class MusicApp(App):
             with Vertical(classes="column"):
                 yield Static("Control")
                 yield Button("▶️", id = "play")
+                yield Input(placeholder="TEMPO", type="integer", value= "120" , id="tempo")
                 yield Static("",id="error")
     def instr(self):
         return self.instruments[self.curr_instr]
@@ -67,13 +68,15 @@ class MusicApp(App):
             except Exception as e:
                 self.query_one("#error", Static).update(str(e))
         pass
+ 
     def synthesis(self):
         code = self.query_one("#urnotes", TextArea).text
         octave = 4
         chord = []
         isamples = np.empty((),dtype=np.int16)
         dot = 1
-        phase = 0
+        phase = 0 
+        tempo = int(self.query_one("#tempo", Input).value)
 
         for i in code:
             try:
@@ -101,7 +104,7 @@ class MusicApp(App):
                     case _: continue
                 dur *= dot
                 dot = 1
-                seconds = dur*60/self.tempo
+                seconds = dur*60/tempo
                 csamples =  np.zeros(round(seconds* samplerate))
                 volume = 0.4
                 if len(chord) > 0:
