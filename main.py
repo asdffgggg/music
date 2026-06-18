@@ -1,7 +1,7 @@
 import sounddevice as sd
 import numpy as np
 from enum import Enum
-from math import pi
+from math import pi, sqrt
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea, Input
@@ -9,13 +9,14 @@ from textual.widgets import Static, Button, TextArea, Input
 
 class Sound(Enum):
     Sine = 0
+    Piano = 1
 letters = "CDEFGAB"
 samplerate = 44100
 class Instrument:
     def __init__(self) -> None:
         self.name = "default"
         self.code = ""
-        self.sound = Sound.Sine
+        self.sound = Sound.Piano
 class MusicApp(App):
     instruments = [Instrument()]
     curr_instr = 0
@@ -112,8 +113,16 @@ class MusicApp(App):
                 for f in chord:
                     samples =  np.linspace(0, seconds, num =round(seconds* samplerate))
                     samples *= f * 2*pi
-                    samples = volume * np.sin(samples + phase*2*pi)
-                    csamples += samples
+                    match self.instr().sound:
+                        case Sound.Sine:
+                            samples = np.sin(samples + phase*2*pi)
+                        case Sound.Piano:
+                            # a = -0.25 * np.sin(3*pi*samples)
+                            # b = 0.25 * np.sin(pi*samples)
+                            # c = sqrt(3)/2 *np.cos(pi*samples)
+                            # samples = a+b+c
+                            samples = np.sin(samples) * np.exp(-0.0004*samples)
+                    csamples += volume* samples
                 csamples *= 2**15 -1
                 csamples = csamples.astype(np.int16)
                 isamples = np.append(isamples,csamples)
