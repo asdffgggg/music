@@ -4,7 +4,8 @@ from enum import Enum
 from math import pi, sqrt
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
-from textual.widgets import Static, Button, TextArea, Input
+from textual.widgets import Static, Button, TextArea, Input, Select
+from textual import on
 # from textual.reactive import reactive
 
 class Sound(Enum):
@@ -52,7 +53,9 @@ class MusicApp(App):
                 yield Static("Control")
                 yield Button("▶️", id = "play")
                 yield Input(placeholder="TEMPO", type="integer", value=str(self.tempo) , id="tempo")
+                yield Select(((str(sound), sound) for sound in Sound), value = self.instr().sound)
                 yield Static("",id="error")
+
     def instr(self):
         return self.instruments[self.curr_instr]
     def on_button_pressed(self, event):
@@ -83,6 +86,9 @@ class MusicApp(App):
                 self.curr_instr = len(self.instruments)
                 self.instruments.append(Instrument(f"i{len(self.instruments)}"))
                 self.reload()
+    @on(Select.Changed)
+    def select_changed(self, event: Select.Changed) -> None:
+        self.instr().sound = event.value
     def tracking_you(self):
         self.instr().code = self.query_one("#urnotes", TextArea).text 
         tempo = int(self.query_one("#tempo", Input).value)
