@@ -89,11 +89,11 @@ class MusicApp(App):
         self.refresh(recompose=True)
     def synthesis(self):
         self.tracking_you()
-        all_samples = np.empty((),dtype=np.int16)
+        all_samples = np.empty((0,),dtype=np.int16)
         for instr in self.instruments:
             octave = 4
             chord = []
-            isamples = np.empty((),dtype=np.int16)
+            isamples = np.empty((0,),dtype=np.int16)
             dot = 1
             phase = 0 
             tempo = self.tempo
@@ -150,9 +150,16 @@ class MusicApp(App):
                     else:    
                         phase += seconds * chord[0]
                     chord.clear()
+            all_samples = pad(all_samples, len(isamples))
+            isamples = pad(isamples, len(all_samples))
             all_samples += isamples
         return all_samples
-                
+
+def pad(arr, size):
+    if len(arr) >= size:
+        return arr
+    return np.pad(arr, (0, size - len(arr)))
+
 # C.q CE.q EGq 
 # GB4Ei EBi EAi EGi Dgq Gigi
 # Ei gi Ei Di D3BGEw h
