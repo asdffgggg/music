@@ -37,7 +37,8 @@ class MusicApp(App):
         with Horizontal(classes = "instruments"):
             yield Static("Instruments:")
             for i, insta in enumerate(self.instruments):
-                yield Button(insta.name, id = insta.id)
+                variant = "primary" if self.curr_instr == i else "default"
+                yield Button(insta.name, id = insta.id, variant = variant)
             yield Button("+", id = "new_ins")
         with Horizontal():
             with Vertical(classes="column"):
@@ -79,6 +80,7 @@ class MusicApp(App):
                 except Exception as e:
                     self.query_one("#error", Static).update(str(e))
             case "new_ins":
+                self.curr_instr = len(self.instruments)
                 self.instruments.append(Instrument(f"i{len(self.instruments)}"))
                 self.reload()
     def tracking_you(self):
