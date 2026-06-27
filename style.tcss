@@ -21,3 +21,8 @@ Screen {
 .notes {
     width:2fr
 }
+
+.bar {
+    height:3;
+    align-horizontal: center;
+}

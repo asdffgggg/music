@@ -1,3 +1,5 @@
+import json
+import crossfiledialog
 import sounddevice as sd
 import numpy as np
 from enum import Enum
@@ -6,11 +8,16 @@ from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea, Input, Select
 from textual import on
+
 # from textual.reactive import reactive
 
 class Sound(Enum):
     Sine = 0
     Piano = 1
+    def __format__(self, format_spec: str) -> str:
+        match self:
+            case Sound.Sine: return 'Sine'
+            case Sound.Piano: return 'Piano'
 letters = "CDEFGAB"
 samplerate = 44100
 class Instrument:
@@ -55,7 +62,9 @@ class MusicApp(App):
                 yield Input(placeholder="TEMPO", type="integer", value=str(self.tempo) , id="tempo")
                 yield Select(((str(sound), sound) for sound in Sound), value = self.instr().sound)
                 yield Static("",id="error")
-
+        with Horizontal(classes="bar"):
+            yield Button("save", id = "save")
+            yield Button("load", id = "load")
     def instr(self):
         return self.instruments[self.curr_instr]
     def on_button_pressed(self, event):
@@ -88,6 +97,16 @@ class MusicApp(App):
                 self.instruments.append(Instrument(f"i{len(self.instruments)}"))
                 self.query_one("#urnotes", TextArea).text = ""
                 self.reload()
+            case "load":
+                path = crossfiledialog.open_file(title = "LOAD FILE FROM")
+                pass
+
+            case "save":
+                path = crossfiledialog.save_file(title = "SAVE FILE AS")
+                json.dump({
+                    "tempo": self.tempo
+                }, path)
+                pass
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
         self.instr().sound =  Sound(event.value)
