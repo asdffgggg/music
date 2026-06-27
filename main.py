@@ -83,15 +83,17 @@ class MusicApp(App):
                 except Exception as e:
                     self.query_one("#error", Static).update(str(e))
             case "new_ins":
+                self.tracking_you()
                 self.curr_instr = len(self.instruments)
                 self.instruments.append(Instrument(f"i{len(self.instruments)}"))
+                self.query_one("#urnotes", TextArea).text = ""
                 self.reload()
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
-        self.instr().sound = event.value
+        self.instr().sound =  Sound(event.value)
     def tracking_you(self):
         self.instr().code = self.query_one("#urnotes", TextArea).text 
-        tempo = int(self.query_one("#tempo", Input).value)
+        self.tempo = int(self.query_one("#tempo", Input).value)
     def reload(self):
         self.tracking_you()
         self.refresh(recompose=True)
