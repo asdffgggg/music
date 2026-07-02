@@ -2,30 +2,37 @@ import json
 import crossfiledialog
 import sounddevice as sd
 import numpy as np
-from enum import Enum
+from enum import Enum, StrEnum
 from math import pi, sqrt
 from textual.app import App, ComposeResult
 from textual.containers import Vertical, Horizontal
 from textual.widgets import Static, Button, TextArea, Input, Select
 from textual import on
+from dataclasses import dataclass, asdict
+from pathlib import Path
 
 # from textual.reactive import reactive
 
-class Sound(Enum):
-    Sine = 0
-    Piano = 1
+class Sound(StrEnum):
+    Sine = "Sine"
+    Piano = "Piano"
     def __format__(self, format_spec: str) -> str:
         match self:
             case Sound.Sine: return 'Sine'
             case Sound.Piano: return 'Piano'
 letters = "CDEFGAB"
 samplerate = 44100
+@dataclass
 class Instrument:
-    def __init__(self, id) -> None:
+    id: str
+    name: str
+    code: str
+    sound: Sound
+    def __init__(self, id, name = "default", code = "", sound = Sound.Sine) -> None:
         self.id = id
-        self.name = "default"
-        self.code = ""
-        self.sound = Sound.Sine
+        self.name = name
+        self.code = code
+        self.sound = sound
 class MusicApp(App):
     instruments = [Instrument("i0")]
     curr_instr = 0
@@ -98,15 +105,27 @@ class MusicApp(App):
                 self.query_one("#urnotes", TextArea).text = ""
                 self.reload()
             case "load":
-                path = crossfiledialog.open_file(title = "LOAD FILE FROM")
-                pass
-
+                path = crossfiledialog.open_file(
+                    title = "LOAD FILE FROM", filter= "*.error"
+                )
+                text = Path(path).read_text()
+                dict = json.loads(text)
+                self.tempo = dict["tempo"]
+                self.instruments = [Instrument(**instr)for instr in dict["instruments"]]
+                self.refresh(recompose=True)
             case "save":
-                path = crossfiledialog.save_file(title = "SAVE FILE AS")
-                json.dump({
-                    "tempo": self.tempo
-                }, path)
-                pass
+                self.tracking_you()
+                path = crossfiledialog.save_file(title = "SAVE FILE AS",
+                    filter = "*.error",
+                    default_name= "untiltited.error",
+                )
+                if not path.endswith(".error"):
+                    path += '.error'
+                text = json.dumps({
+                    "tempo": self.tempo, 
+                    "instruments" : [asdict(instr) for instr in self.instruments]
+                })
+                Path(path).write_text(text)
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
         self.instr().sound =  Sound(event.value)
