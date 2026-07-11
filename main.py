@@ -16,10 +16,16 @@ from pathlib import Path
 class Sound(StrEnum):
     Sine = "Sine"
     Piano = "Piano"
+    Drums = "Drums"
     def __format__(self, format_spec: str) -> str:
         match self:
             case Sound.Sine: return 'Sine'
             case Sound.Piano: return 'Piano'
+            case Sound.Drums: return 'Drums'
+class Drum(Enum):
+    Bass = 0
+    Snare = 1
+    Hat = 2
 letters = "CDEFGAB"
 samplerate = 44100
 @dataclass
@@ -154,12 +160,19 @@ class MusicApp(App):
                 except:
                     flat = i.islower()
                     if i.lower() in letters.lower():
-                        i = letters.index(i.capitalize())
-                        pitch = [0, 2, 4, 5, 7, 9, 11][i] + octave*12
-                        if flat:
-                            pitch -=1
-                        f = 16.35*(2**(pitch/12))
-                        chord.append(f)
+                        if instr.sound == Sound.Drums: 
+                            match i.lower():
+                                case "c": chord.append(Drum.Bass)
+                                case "e": chord.append(Drum.Snare)
+                                case "d": chord.append(Drum.Hat)
+
+                        else:
+                            i = letters.index(i.capitalize())
+                            pitch = [0, 2, 4, 5, 7, 9, 11][i] + octave*12
+                            if flat:
+                                pitch -=1
+                            f = 16.35*(2**(pitch/12))
+                            chord.append(f)
                         continue
                     dur = 1
                     match i:
@@ -175,29 +188,43 @@ class MusicApp(App):
                     dur *= dot
                     dot = 1
                     seconds = dur*60/tempo
-                    csamples =  np.zeros(round(seconds* samplerate))
+                    samplecount = round(seconds* samplerate)
+                    csamples =  np.zeros(samplecount)
                     volume = 0.4
                     if len(chord) > 0:
                         volume /= len(chord)
                     for f in chord:
-                        samples =  np.linspace(0, seconds, num =round(seconds* samplerate))
-                        samples *= f * 2*pi
-                        match instr.sound:
-                            case Sound.Sine:
-                                samples = np.sin(samples + phase*2*pi)
-                            case Sound.Piano:
-                                a = -0.2 * np.cos(3*samples)
-                                b = 0.25 * np.sin(samples)
-                                c = sqrt(3)/2 *np.cos(samples)
-                                over = a+b+c
-                                samples = np.sin(over) * np.exp(-0.0004*samples)
+                        samples =  np.linspace(0, seconds, num =samplecount)
+                        if instr.sound == Sound.Drums: 
+                            match f:
+                                case Drum.Bass:
+                                    samples = np.pow(samples, 0.25)
+                                    samples *= 30 * 2*pi
+                                    samples = np.sin(samples)
+                                case Drum.Snare:
+                                    noise = np.random.rand(samplecount)
+                                    samples =  noise* np.less (samples, 0.07348)/(samples*68.901+1)
+                                case Drum.Hat:
+                                    noise = np.random.rand(samplecount)
+                                    samples =  noise* np.less (samples, 0.07348)/(samples*589+1)
+                        else:
+                            samples *= f * 2*pi
+                            match instr.sound:
+                                case Sound.Sine:
+                                    samples = np.sin(samples + phase*2*pi)
+                                case Sound.Piano:
+                                    a = -0.2 * np.cos(3*samples)
+                                    b = 0.25 * np.sin(samples)
+                                    c = sqrt(3)/2 *np.cos(samples)
+                                    over = a+b+c
+                                    samples = np.sin(over) * np.exp(-0.0004*samples)
                         csamples += volume* samples
                     csamples *= 2**15 -1
                     csamples = csamples.astype(np.int16)
                     isamples = np.append(isamples,csamples)
                     if len(chord) == 0:
                         phase = 0
-                    else:    
+                    elif isinstance(chord[0], float):    
                         phase += seconds * chord[0]
                     chord.clear()
             all_samples = pad(all_samples, len(isamples))
