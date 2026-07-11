@@ -108,24 +108,26 @@ class MusicApp(App):
                 path = crossfiledialog.open_file(
                     title = "LOAD FILE FROM", filter= "*.error"
                 )
-                text = Path(path).read_text()
-                dict = json.loads(text)
-                self.tempo = dict["tempo"]
-                self.instruments = [Instrument(**instr)for instr in dict["instruments"]]
-                self.refresh(recompose=True)
+                if isinstance(path, str):
+                    text = Path(path).read_text()
+                    dict = json.loads(text)
+                    self.tempo = dict["tempo"]
+                    self.instruments = [Instrument(**instr)for instr in dict["instruments"]]
+                    self.refresh(recompose=True)
             case "save":
                 self.tracking_you()
                 path = crossfiledialog.save_file(title = "SAVE FILE AS",
                     filter = "*.error",
                     default_name= "untiltited.error",
                 )
-                if not path.endswith(".error"):
-                    path += '.error'
-                text = json.dumps({
-                    "tempo": self.tempo, 
-                    "instruments" : [asdict(instr) for instr in self.instruments]
-                })
-                Path(path).write_text(text)
+                if isinstance(path, str):
+                    if not path.endswith(".error"):
+                        path += '.error'
+                    text = json.dumps({
+                        "tempo": self.tempo, 
+                        "instruments" : [asdict(instr) for instr in self.instruments]
+                    })
+                    Path(path).write_text(text)
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
         self.instr().sound =  Sound(event.value)
