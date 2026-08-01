@@ -248,6 +248,8 @@ class MusicApp(App):
                     csamples = np.zeros(samplecount)
                     volume = 0.4
                     if len(chord) > 0:
+                        if instr.sound == Sound.Drums:
+                            volume *= 0.7
                         volume /= len(chord)
                     for f in chord:
                         samples = np.linspace(0, seconds, num=samplecount)
