@@ -12,6 +12,7 @@ Screen {
 
 .instruments {
     overflow-x: auto;
+    height: auto;
 }
 
 .instruments>* {

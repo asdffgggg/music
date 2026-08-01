@@ -13,32 +13,46 @@ from pathlib import Path
 
 # from textual.reactive import reactive
 
+
 class Sound(StrEnum):
     Sine = "Sine"
     Piano = "Piano"
     Drums = "Drums"
+
     def __format__(self, format_spec: str) -> str:
         match self:
-            case Sound.Sine: return 'Sine'
-            case Sound.Piano: return 'Piano'
-            case Sound.Drums: return 'Drums'
+            case Sound.Sine:
+                return "Sine"
+            case Sound.Piano:
+                return "Piano"
+            case Sound.Drums:
+                return "Drums"
+
+
 class Drum(Enum):
     Bass = 0
     Snare = 1
     Hat = 2
+
+
 letters = "CDEFGAB"
 samplerate = 44100
+
+
 @dataclass
 class Instrument:
     id: str
     name: str
     code: str
     sound: Sound
-    def __init__(self, id, name = "default", code = "", sound = Sound.Sine) -> None:
+
+    def __init__(self, id, name="default", code="", sound=Sound.Sine) -> None:
         self.id = id
         self.name = name
         self.code = code
         self.sound = sound
+
+
 class MusicApp(App):
     instruments = [Instrument("i0")]
     curr_instr = 0
@@ -46,49 +60,62 @@ class MusicApp(App):
     tempo = 120
     samples = None
     played = False
+
     def on_mount(self):
         self.tick_time = self.set_interval(0.001, self.tick)
+
     def tick(self):
         try:
             if self.played and not sd.get_stream().active:
                 self.query_one("#play", Button).label = "▶️"
         except:
             pass
+
     def compose(self) -> ComposeResult:
-        with Horizontal(classes = "instruments"):
+        with Horizontal(classes="instruments"):
             yield Static("Instruments:")
             for i, insta in enumerate(self.instruments):
                 variant = "primary" if self.curr_instr == i else "default"
-                yield Button(insta.name, id = insta.id, variant = variant)
-            yield Button("+", id = "new_ins")
+                yield Button(insta.name, id=insta.id, variant=variant)
+            yield Button("+", id="new_ins")
         with Horizontal():
             with Vertical(classes="column"):
                 yield Static("Palette")
                 for c in letters:
-                    yield Button(c, id = c)
+                    yield Button(c, id=c)
             with Vertical(classes="notes"):
                 yield Static("Notes")
-                yield TextArea.code_editor(self.instr().code, id = "urnotes")
+                yield TextArea.code_editor(self.instr().code, id="urnotes")
             with Vertical(classes="column"):
                 yield Static("Control")
-                yield Button("▶️", id = "play")
-                yield Input(placeholder="TEMPO", type="integer", value=str(self.tempo) , id="tempo")
-                yield Select(((str(sound), sound) for sound in Sound), value = self.instr().sound)
-                yield Static("",id="error")
+                yield Button("▶️", id="play")
+                yield Input(
+                    placeholder="TEMPO",
+                    type="integer",
+                    value=str(self.tempo),
+                    id="tempo",
+                )
+                yield Select(
+                    ((str(sound), sound) for sound in Sound), value=self.instr().sound
+                )
+                yield Input(placeholder="name", value=self.instr().name, id="name")
+                yield Static("", id="error")
         with Horizontal(classes="bar"):
-            yield Button("save", id = "save")
-            yield Button("load", id = "load")
+            yield Button("save", id="save")
+            yield Button("load", id="load")
+
     def instr(self):
         return self.instruments[self.curr_instr]
+
     def on_button_pressed(self, event):
-        if event.button.id[0] == 'i':
+        if event.button.id[0] == "i":
             try:
                 self.tracking_you()
                 self.curr_instr = int(event.button.id[1:])
                 self.refresh(recompose=True)
                 return
-            except: 
-             pass
+            except:
+                pass
         match event.button.id:
             case "play":
                 try:
@@ -109,49 +136,69 @@ class MusicApp(App):
                 self.curr_instr = len(self.instruments)
                 self.instruments.append(Instrument(f"i{len(self.instruments)}"))
                 self.query_one("#urnotes", TextArea).text = ""
+                self.query_one("#name", Input).value = self.instr().name
                 self.reload()
             case "load":
                 path = crossfiledialog.open_file(
-                    title = "LOAD FILE FROM", filter= "*.error"
+                    title="LOAD FILE FROM", filter="*.error"
                 )
                 if isinstance(path, str):
                     text = Path(path).read_text()
                     dict = json.loads(text)
                     self.tempo = dict["tempo"]
-                    self.instruments = [Instrument(**instr)for instr in dict["instruments"]]
+                    self.instruments = [
+                        Instrument(**instr) for instr in dict["instruments"]
+                    ]
                     self.refresh(recompose=True)
             case "save":
                 self.tracking_you()
-                path = crossfiledialog.save_file(title = "SAVE FILE AS",
-                    filter = "*.error",
-                    default_name= "untiltited.error",
+                path = crossfiledialog.save_file(
+                    title="SAVE FILE AS",
+                    filter="*.error",
+                    default_name="untiltited.error",
                 )
                 if isinstance(path, str):
                     if not path.endswith(".error"):
-                        path += '.error'
-                    text = json.dumps({
-                        "tempo": self.tempo, 
-                        "instruments" : [asdict(instr) for instr in self.instruments]
-                    })
+                        path += ".error"
+                    text = json.dumps(
+                        {
+                            "tempo": self.tempo,
+                            "instruments": [
+                                asdict(instr) for instr in self.instruments
+                            ],
+                        }
+                    )
                     Path(path).write_text(text)
+
     @on(Select.Changed)
     def select_changed(self, event: Select.Changed) -> None:
-        self.instr().sound =  Sound(event.value)
+        self.instr().sound = Sound(event.value)
+
+    @on(Input.Changed, '#name')
+    def handle_name_changed(self, event: Input.Changed):
+
+            self.instr().name = event.input.value
+            self.query_one(f"#{self.instr().id}", Button).label = event.input.value
+
+
     def tracking_you(self):
-        self.instr().code = self.query_one("#urnotes", TextArea).text 
+        self.instr().code = self.query_one("#urnotes", TextArea).text
         self.tempo = int(self.query_one("#tempo", Input).value)
+        self.instr().name = self.query_one("#name", Input).value
+
     def reload(self):
         self.tracking_you()
         self.refresh(recompose=True)
+
     def synthesis(self):
         self.tracking_you()
-        all_samples = np.empty((0,),dtype=np.int16)
+        all_samples = np.empty((0,), dtype=np.int16)
         for instr in self.instruments:
             octave = 4
             chord = []
-            isamples = np.empty((0,),dtype=np.int16)
+            isamples = np.empty((0,), dtype=np.int16)
             dot = 1
-            phase = 0 
+            phase = 0
             tempo = self.tempo
 
             for i in instr.code:
@@ -160,71 +207,88 @@ class MusicApp(App):
                 except:
                     flat = i.islower()
                     if i.lower() in letters.lower():
-                        if instr.sound == Sound.Drums: 
+                        if instr.sound == Sound.Drums:
                             match i.lower():
-                                case "c": chord.append(Drum.Bass)
-                                case "e": chord.append(Drum.Snare)
-                                case "d": chord.append(Drum.Hat)
+                                case "c":
+                                    chord.append(Drum.Bass)
+                                case "e":
+                                    chord.append(Drum.Snare)
+                                case "d":
+                                    chord.append(Drum.Hat)
 
                         else:
                             i = letters.index(i.capitalize())
-                            pitch = [0, 2, 4, 5, 7, 9, 11][i] + octave*12
+                            pitch = [0, 2, 4, 5, 7, 9, 11][i] + octave * 12
                             if flat:
-                                pitch -=1
-                            f = 16.35*(2**(pitch/12))
+                                pitch -= 1
+                            f = 16.35 * (2 ** (pitch / 12))
                             chord.append(f)
                         continue
                     dur = 1
                     match i:
-                        case "w": dur = 4
-                        case "h": dur = 2
-                        case "q": dur = 1
-                        case "i": dur= 0.5
-                        case "s": dur = 0.25
-                        case ".": 
-                            dot = 1 + dot/2
+                        case "w":
+                            dur = 4
+                        case "h":
+                            dur = 2
+                        case "q":
+                            dur = 1
+                        case "i":
+                            dur = 0.5
+                        case "s":
+                            dur = 0.25
+                        case ".":
+                            dot = 1 + dot / 2
                             continue
-                        case _: continue
+                        case _:
+                            continue
                     dur *= dot
                     dot = 1
-                    seconds = dur*60/tempo
-                    samplecount = round(seconds* samplerate)
-                    csamples =  np.zeros(samplecount)
+                    seconds = dur * 60 / tempo
+                    samplecount = round(seconds * samplerate)
+                    csamples = np.zeros(samplecount)
                     volume = 0.4
                     if len(chord) > 0:
                         volume /= len(chord)
                     for f in chord:
-                        samples =  np.linspace(0, seconds, num =samplecount)
-                        if instr.sound == Sound.Drums: 
+                        samples = np.linspace(0, seconds, num=samplecount)
+                        if instr.sound == Sound.Drums:
                             match f:
                                 case Drum.Bass:
                                     samples = np.pow(samples, 0.25)
-                                    samples *= 30 * 2*pi
+                                    samples *= 30 * 2 * pi
                                     samples = np.sin(samples)
                                 case Drum.Snare:
                                     noise = np.random.rand(samplecount)
-                                    samples =  noise* np.less (samples, 0.07348)/(samples*68.901+1)
+                                    samples = (
+                                        noise
+                                        * np.less(samples, 0.07348)
+                                        / (samples * 68.901 + 1)
+                                    )
                                 case Drum.Hat:
                                     noise = np.random.rand(samplecount)
-                                    samples =  noise* np.less (samples, 0.07348)/(samples*589+1)
+                                    samples = (
+                                        noise
+                                        * np.less(samples, 0.07348)
+                                        / (samples * 589 + 1)
+                                    )
                         else:
-                            samples *= f * 2*pi
+                            samples *= f * 2 * pi
                             match instr.sound:
                                 case Sound.Sine:
-                                    samples = np.sin(samples + phase*2*pi)
+                                    samples = np.sin(samples + phase * 2 * pi)
                                 case Sound.Piano:
-                                    a = -0.2 * np.cos(3*samples)
+                                    a = -0.2 * np.cos(3 * samples)
                                     b = 0.25 * np.sin(samples)
-                                    c = sqrt(3)/2 *np.cos(samples)
-                                    over = a+b+c
-                                    samples = np.sin(over) * np.exp(-0.0004*samples)
-                        csamples += volume* samples
-                    csamples *= 2**15 -1
+                                    c = sqrt(3) / 2 * np.cos(samples)
+                                    over = a + b + c
+                                    samples = np.sin(over) * np.exp(-0.0004 * samples)
+                        csamples += volume * samples
+                    csamples *= 2**15 - 1
                     csamples = csamples.astype(np.int16)
-                    isamples = np.append(isamples,csamples)
+                    isamples = np.append(isamples, csamples)
                     if len(chord) == 0:
                         phase = 0
-                    elif isinstance(chord[0], float):    
+                    elif isinstance(chord[0], float):
                         phase += seconds * chord[0]
                     chord.clear()
             all_samples = pad(all_samples, len(isamples))
@@ -232,12 +296,14 @@ class MusicApp(App):
             all_samples += isamples
         return all_samples
 
+
 def pad(arr, size):
     if len(arr) >= size:
         return arr
     return np.pad(arr, (0, size - len(arr)))
 
-# C.q CE.q EGq 
+
+# C.q CE.q EGq
 # GB4Ei EBi EAi EGi Dgq Gigi
 # Ei gi Ei Di D3BGEw h
 # 5Eq 4Eq 2B3E.w
@@ -246,7 +312,7 @@ def pad(arr, size):
 # 4eGb5dh
 # 4CeGbh
 # 4FA5Ceh
-                
+
 
 if __name__ == "__main__":
     app = MusicApp()
